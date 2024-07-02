@@ -25,14 +25,40 @@ project("amogusapp")
 # System.loadLibrary() and pass the name of the library defined here;
 # for GameActivity/NativeActivity derived applications, the same library name must be
 # used in the AndroidManifest.xml file.
+set(CURL_LIBRARY "D://static/curl_build/lib/libcurl.a")
+#include_directories("D://static/curl_build/include")
+
+set(OPENSSL_LIBRARIES "D://static//openssl_build/lib")
+include_directories("D://static//openssl_build/include")
+
+
 add_library(${CMAKE_PROJECT_NAME} SHARED
     # List C/C++ source files with relative paths to this CMakeLists.txt.
     amogusapp.cpp)
 
+find_library(log-lib log)
+find_library(jnigraphics-lib jnigraphics)
+
+target_link_libraries(${CMAKE_PROJECT_NAME}
+        android
+        ${log-lib}
+        ${jnigraphics-lib}
+        ${CURL_LIBRARY}
+        ${OPENSSL_LIBRARIES}/libssl.a
+        ${OPENSSL_LIBRARIES}/libcrypto.a
+        z)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+#-O3
+
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
-target_link_libraries(${CMAKE_PROJECT_NAME}
+
+#FIRST VERSION
+#target_link_libraries(${CMAKE_PROJECT_NAME}
     # List libraries link to the target library
-    android
-    log)
+ #   android
+ #   log)
+# Specifies libraries CMake should link to your target library.
+

@@ -77,7 +77,8 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         val context = LocalContext.current
 
-        NavHost(navController = navController, startDestination = "splashScreen") {
+        //Main screen for practicity
+        NavHost(navController = navController, startDestination = "mainScreen") {
             composable("splashScreen") { SplashScreen(navController) }
             composable("mainScreen") { MainScreen(navController, this@MainActivity) }
             composable("cameraScreen") {
@@ -94,7 +95,15 @@ class MainActivity : ComponentActivity() {
             ) { backStackEntry ->
                 val stringValue = backStackEntry.arguments?.getString("cadena")
                 stringValue?.let {
-                    SendFilesScreen(navController, it)
+                    SendFilesActivity().SendFilesScreen(navController, it)
+                }
+            }
+            composable("conection/{cadena}",
+                arguments = listOf(navArgument("cadena") {type = NavType.StringType})
+            ) {backStackEntry ->
+                val stringValue = backStackEntry.arguments?.getString("cadena")
+                stringValue?.let {
+                    addConnection(it)
                 }
             }
 

@@ -20,7 +20,7 @@ android {
         }
         externalNativeBuild {
             cmake {
-                cppFlags += ""
+                cppFlags += "-O3"
             }
         }
     }

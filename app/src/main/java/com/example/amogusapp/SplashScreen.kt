@@ -70,7 +70,7 @@ fun Splash(alpha: Animatable<Float, AnimationVector1D>) {
             Text(
                 "IP: 192.168.1.100\n" +
                         "L: 37.7749\n" +
-                        "DNS: example.com\n" +
+                        "DNS:  森林里住着熊妈妈\n" +
                         "MAC: 1A:2B:3C:4D:5E:6F\n" +
                         "SN: ABC123XYZ456\n" +
                         "AC: 789DEF456ABC\n",

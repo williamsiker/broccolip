@@ -2,8 +2,8 @@ package com.example.amogusapp
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.util.Log
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageCapture
@@ -13,29 +13,20 @@ import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,15 +52,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.net.Socket
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 class CameraHandler(context: Context) {
+    init {
+        System.loadLibrary("amogusapp")
+    }
+    private external fun nativeRotateAndScale(bitmap: Bitmap, rotationDegrees : Float) : Bitmap
+    private external fun nativeConnectToServer(ip: String, port: Int) : Boolean
+
     private val controller = LifecycleCameraController(context).apply {
         setEnabledUseCases(
             CameraController.IMAGE_CAPTURE or
@@ -78,9 +70,6 @@ class CameraHandler(context: Context) {
         )
     }
 
-    private var socket: Socket? = null
-    private var reader: BufferedReader? = null
-    private var writer: BufferedWriter? = null
     private var isConnected: Boolean = false
 
     private fun getController(): LifecycleCameraController {
@@ -94,7 +83,8 @@ class CameraHandler(context: Context) {
         controller.takePicture(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
+                /*KOTLIN FUNCTION*/
+                /*override fun onCaptureSuccess(image: ImageProxy) {
                     super.onCaptureSuccess(image)
                     val matrix = Matrix().apply {
                         postRotate(image.imageInfo.rotationDegrees.toFloat())
@@ -111,6 +101,12 @@ class CameraHandler(context: Context) {
                     )
 
                     onPhotoTaken(rotatedBitmap)
+                }*/
+                override fun onCaptureSuccess(image: ImageProxy) {
+                    super.onCaptureSuccess(image)
+                    val bitmap = image.toBitmap()
+                    val rotatedBitmap = nativeRotateAndScale(bitmap, image.imageInfo.rotationDegrees.toFloat())
+                    onPhotoTaken(rotatedBitmap)
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -121,18 +117,17 @@ class CameraHandler(context: Context) {
         )
     }
 
-    //Function to analyze QR code
     @androidx.annotation.OptIn(ExperimentalGetImage::class)
     private fun scanQRCode(imageProxy: ImageProxy, onQrCodeDetected: (String) -> Unit) {
         val image = InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
             .build()
-        val scanner : BarcodeScanner = BarcodeScanning.getClient(options)
+        val scanner: BarcodeScanner = BarcodeScanning.getClient(options)
 
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
-                for(barcode in barcodes) {
+                for (barcode in barcodes) {
                     barcode.rawValue?.let {
                         onQrCodeDetected(it)
                     }
@@ -140,7 +135,7 @@ class CameraHandler(context: Context) {
                 imageProxy.close()
             }
             .addOnFailureListener {
-                Log.e("QR Scan", "Error Scaning QR code", it)
+                Log.e("QR Scan", "Error scanning QR code", it)
                 imageProxy.close()
             }
     }
@@ -154,7 +149,7 @@ class CameraHandler(context: Context) {
         val viewModel = viewModel<MainViewModel>()
         val bitmaps by viewModel.bitmaps.collectAsState()
         var qrCode by remember { mutableStateOf<String?>(null) }
-        var isLoading by remember { mutableStateOf(false) }
+        //var isLoading by remember { mutableStateOf(false) }
 
         BottomSheetScaffold(
             scaffoldState = scaffoldState,
@@ -204,49 +199,16 @@ class CameraHandler(context: Context) {
 
                 // QR functionality
                 qrCode?.let {
-                    Column(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        AlertDialog(
-                            onDismissRequest = { qrCode = null },
-                            title = { Text("QR Code Detected") },
-                            text = { Text(it) },
-                            confirmButton = {
-                                Row {
-                                    Button(onClick = { qrCode = null }) {
-                                        Text("OK")
-                                    }
-                                    if (!isConnected) {
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Button(
-                                            onClick = {
-                                                isLoading = true
-                                                connectToServer(it, scope) {
-                                                    val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
-                                                    navController.navigate("send-fileScreen/$encodedString") {
-                                                        popUpTo("cameraScreen") { inclusive = true }
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
-                                                    isLoading = false
-                                                }
-                                            },
-                                            enabled = !isLoading
-                                        ) {
-                                            if (isLoading) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(24.dp),
-                                                    color = MaterialTheme.colorScheme.onPrimary
-                                                )
-                                            } else {
-                                                Text("Conectar")
-                                            }
-                                        }
-                                    }
-                                }
+                    if (!isConnected) {
+                        connectToServer(it, scope) {
+                            Toast.makeText(context, "CONECTANDO :)", Toast.LENGTH_SHORT).show()
+                            val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
+                            navController.navigate("send-fileScreen/$encodedString") {
+                                popUpTo("cameraScreen") { inclusive = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
+                        }
                     }
                 }
 
@@ -304,7 +266,7 @@ class CameraHandler(context: Context) {
             scope.launch {
                 try {
                     if (!isConnected) {
-                        withContext(Dispatchers.IO) {
+                        /*withContext(Dispatchers.IO) {
                             socket = Socket(ip, port).apply {
                                 reader = BufferedReader(InputStreamReader(getInputStream()))
                                 writer = BufferedWriter(OutputStreamWriter(getOutputStream()))
@@ -312,7 +274,18 @@ class CameraHandler(context: Context) {
                         }
                         isConnected = true
                         Log.d("Socket", "Connected to $ip:$port")
-                        onSuccess() // Llama a la lambda onSuccess cuando la conexión es exitosa
+                        onSuccess() */
+                        val connected = withContext(Dispatchers.IO) {
+                            nativeConnectToServer(ip, port)
+                        }
+
+                        if(connected) {
+                            isConnected = true
+                            Log.d("Socket", "Connected to $ip:$port")
+                            onSuccess()
+                        }else{
+                            Log.e("Socket", "Error connecting to $ip:$port")
+                        }
                     }
                 } catch (e: Exception) {
                     Log.e("Socket", "Error connecting", e)
@@ -324,14 +297,3 @@ class CameraHandler(context: Context) {
     }
 
 }
-
-/*
-fun ImageProxy.toBitmap(): Bitmap {
-    val planeProxy = this.planes[0]
-    val buffer = planeProxy.buffer
-    buffer.rewind()
-    val bytes = ByteArray(buffer.capacity())
-    buffer.get(bytes)
-    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, null)
-}
-*/
