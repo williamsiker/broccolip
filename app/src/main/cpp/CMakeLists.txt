@@ -1,64 +1,68 @@
-
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html.
-# For more examples on how to use CMake, see https://github.com/android/ndk-samples.
-
 # Sets the minimum CMake version required for this project.
 cmake_minimum_required(VERSION 3.22.1)
 
-# Declares the project name. The project name can be accessed via ${ PROJECT_NAME},
-# Since this is the top level CMakeLists.txt, the project name is also accessible
-# with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
-# build script scope).
+# Declares the project name.
 project("amogusapp")
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
-#
-# In this top level CMakeLists.txt, ${CMAKE_PROJECT_NAME} is used to define
-# the target library name; in the sub-module's CMakeLists.txt, ${PROJECT_NAME}
-# is preferred for the same purpose.
-#
-# In order to load a library into your app from Java/Kotlin, you must call
-# System.loadLibrary() and pass the name of the library defined here;
-# for GameActivity/NativeActivity derived applications, the same library name must be
-# used in the AndroidManifest.xml file.
-set(CURL_LIBRARY "D://static/curl_build/lib/libcurl.a")
-#include_directories("D://static/curl_build/include")
+# Define the paths to the libraries
+set(OPENSSL32_ROOT_DIR "D:\\Libraries\\openssl_build32")
+set(ZLIB32_ROOT "D:\\Libraries\\zlib_build32")
+set(CURL32_ROOT "D:\\Libraries\\curl_build32")
 
-set(OPENSSL_LIBRARIES "D://static//openssl_build/lib")
-include_directories("D://static//openssl_build/include")
+set(OPENSSL64_ROOT_DIR "D:\\Libraries\\openssl_build64")
+set(ZLIB64_ROOT "D:\\Libraries\\zlib_build64")
+set(CURL64_ROOT "D:\\Libraries\\curl_build64")
 
+# Define the architecture based on a CMake variable or environment variable
+if("${ANDROID_ABI}" STREQUAL "armeabi-v7a")
+        set(OPENSSL_ROOT_DIR ${OPENSSL32_ROOT_DIR})
+        set(ZLIB_ROOT ${ZLIB32_ROOT})
+        set(CURL_ROOT ${CURL32_ROOT})
+elseif("${ANDROID_ABI}" STREQUAL "arm64-v8a")
+        set(OPENSSL_ROOT_DIR ${OPENSSL64_ROOT_DIR})
+        set(ZLIB_ROOT ${ZLIB64_ROOT})
+        set(CURL_ROOT ${CURL64_ROOT})
+else()
+        message(FATAL_ERROR "Unsupported ABI: ${ANDROID_ABI}")
+endif()
 
-add_library(${CMAKE_PROJECT_NAME} SHARED
-    # List C/C++ source files with relative paths to this CMakeLists.txt.
-    amogusapp.cpp)
+include_directories(
+        ${OPENSSL_ROOT_DIR}/include
+        ${CURL_ROOT}/include
+        ${ZLIB_ROOT}/include
+)
+
+# List C/C++ source files with relative paths to this CMakeLists.txt.
+#add_library(${CMAKE_PROJECT_NAME} SHARED camerax_api.cpp connections_api.cpp)
+add_library(camerax_api SHARED camerax_api.cpp)
+add_library(connections_api SHARED connections_api.cpp)
 
 find_library(log-lib log)
 find_library(jnigraphics-lib jnigraphics)
 
-target_link_libraries(${CMAKE_PROJECT_NAME}
+set(CURL_LIBRARY ${CURL_ROOT}/lib/libcurl.so )
+set(OPENSSL_LIBRARIES
+        ${OPENSSL_ROOT_DIR}/lib/libssl.so
+        ${OPENSSL_ROOT_DIR}/lib/libcrypto.so
+)
+set(ZLIB_LIBRARY ${ZLIB_ROOT}/lib/libz.so)
+
+target_link_libraries(camerax_api
         android
         ${log-lib}
         ${jnigraphics-lib}
         ${CURL_LIBRARY}
-        ${OPENSSL_LIBRARIES}/libssl.a
-        ${OPENSSL_LIBRARIES}/libcrypto.a
-        z)
+        ${OPENSSL_LIBRARIES}
+        ${ZLIB_LIBRARY}
+)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-#-O3
+target_link_libraries(connections_api
+        android
+        ${log-lib}
+        ${jnigraphics-lib}
+        ${CURL_LIBRARY}
+        ${OPENSSL_LIBRARIES}
+        ${ZLIB_LIBRARY}
+)
 
-# Specifies libraries CMake should link to your target library. You
-# can link libraries from various origins, such as libraries defined in this
-# build script, prebuilt third-party libraries, or Android system libraries.
-
-#FIRST VERSION
-#target_link_libraries(${CMAKE_PROJECT_NAME}
-    # List libraries link to the target library
- #   android
- #   log)
-# Specifies libraries CMake should link to your target library.
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")

@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -89,7 +90,7 @@ import java.nio.charset.StandardCharsets
 
 data class HistorialItem(
     val contenido: Any,
-    var estaSeleccionado: MutableState<Boolean> = mutableStateOf(false)
+    var active : MutableState<Boolean> = mutableStateOf(false)
 )
 
 data class TabItem(
@@ -105,9 +106,10 @@ class SendFilesActivity : ComponentActivity() {
     private var ftpPasswd = ""
 
     init {
-        System.loadLibrary("amogusapp")
+        System.loadLibrary("connections_api")
     }
     private external fun fetchPageContent() : String
+    private external fun uploadFileToFTP(ftpUrl: String, filePath: String): Boolean
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
@@ -196,7 +198,8 @@ class SendFilesActivity : ComponentActivity() {
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1f),
+                beyondBoundsPageCount = tabItems.size - 1
             ) {index ->
                 when(index) {
                     0 -> HomeContent(
@@ -250,6 +253,13 @@ class SendFilesActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(4.dp)
+                            .clickable {
+                                item.active.value = !item.active.value
+                                Log.d(
+                                    "SwitchClick",
+                                    "\"Item ${item.contenido} seleccionado: ${item.active.value}\""
+                                )
+                            }
                     ) {
                         val imageModifier = Modifier
                             .size(48.dp)
@@ -277,11 +287,10 @@ class SendFilesActivity : ComponentActivity() {
                         )
 
                         RadioButton(
-                            selected = item.estaSeleccionado.value,
+                            selected = item.active.value,
                             onClick = {
-                                // Cambiar el estado de estaSeleccionado cuando se hace clic
-                                item.estaSeleccionado.value = !item.estaSeleccionado.value
-                                Log.e("SwitchClick", "Item ${item.contenido} seleccionado: ${item.estaSeleccionado.value}")
+                                item.active.value = !item.active.value
+                                Log.e("SwitchClick", "Item ${item.contenido} seleccionado: ${item.active.value}")
                             },
                             modifier = Modifier.size(24.dp)
                         )
@@ -344,12 +353,12 @@ class SendFilesActivity : ComponentActivity() {
                                     fileList.add(HistorialItem(contenido = message))
                                     setMessage("")
                                 } else {
-                                    fileList.filter { it.estaSeleccionado.value }.forEach { item ->
+                                    fileList.filter { it.active.value }.forEach { item ->
                                         when (val contenido = item.contenido) {
                                             is String -> stringQr?.let { sendMessage(contenido, this, URLEncoder.encode(it, StandardCharsets.UTF_8.toString())) }
                                             is File -> stringQr?.let { connectAndUploadFile(contenido, this, URLEncoder.encode(it, StandardCharsets.UTF_8.toString())) }
                                         }
-                                        item.estaSeleccionado.value = false
+                                        item.active.value = false
                                     }
                                 }
                             } catch (e: Exception) {
@@ -506,24 +515,38 @@ class SendFilesActivity : ComponentActivity() {
         return null
     }
 
-
-
-    // FTP CODE SCOPE
     private fun connectAndUploadFile(
         file: File,
         scope: CoroutineScope,
         stringQr : String
     ) {
-        val regularExpression = "ftp://(.*):(\\d+)#(\\S+)#(\\S+)".toRegex()
+        val regularExpression = "ftp://(\\S+):(\\S+)@(.*):(\\d+)".toRegex()
         val matchResult = regularExpression.find(stringQr)
 
         if (matchResult != null) {
-            ftpHost = matchResult.groupValues[1]
-            ftpPort = matchResult.groupValues[2].toInt()
-            ftpUser = matchResult.groupValues[3]
-            ftpPasswd = matchResult.groupValues[4]
+            ftpUser = matchResult.groupValues[1]
+            ftpPasswd = matchResult.groupValues[2]
+            ftpHost = matchResult.groupValues[3]
+            ftpPort = matchResult.groupValues[4].toInt()
+
+            scope.launch(Dispatchers.IO) {
+                val encodedFileName = URLEncoder.encode(file.name, "UTF-8").replace("+", "%20")
+                val string = "$stringQr/$encodedFileName"
+                val connected = uploadFileToFTP(string, file.absolutePath)
+                if (connected) {
+                    Log.d("FTP connection", "Successfully uploaded file")
+                } else {
+                    Log.d("FTP connection", "Failed to upload file")
+                }
+            }
+        }else{
+            Log.d("Cadenas", "Cadena no valida")
         }
 
+
+
+        /*
+        //Antigua Funcion KOTLIN CONNECT-UPLOAD FILE
         scope.launch(Dispatchers.IO) {
             val ftpClient = FTPClient()
             try {
@@ -563,11 +586,11 @@ class SendFilesActivity : ComponentActivity() {
                     }
                 }
             }
-        }
+        }*/
     }
 
     private fun sendMessage(message: String, scope: CoroutineScope, stringQr: String) {
-        val regularExpression = "ftp://(.*):(\\d+)#(\\S+)#(\\S+)".toRegex()
+        val regularExpression = "ftp://(\\S+):(\\S+)@(.*):(\\d+)".toRegex()
         val matchResult = regularExpression.find(stringQr)
 
         if (matchResult != null) {

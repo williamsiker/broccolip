@@ -57,7 +57,8 @@ import java.nio.charset.StandardCharsets
 
 class CameraHandler(context: Context) {
     init {
-        System.loadLibrary("amogusapp")
+        System.loadLibrary("camerax_api")
+        System.loadLibrary("connections_api")
     }
     private external fun nativeRotateAndScale(bitmap: Bitmap, rotationDegrees : Float) : Bitmap
     private external fun nativeConnectToServer(ip: String, port: Int) : Boolean
@@ -149,7 +150,6 @@ class CameraHandler(context: Context) {
         val viewModel = viewModel<MainViewModel>()
         val bitmaps by viewModel.bitmaps.collectAsState()
         var qrCode by remember { mutableStateOf<String?>(null) }
-        //var isLoading by remember { mutableStateOf(false) }
 
         BottomSheetScaffold(
             scaffoldState = scaffoldState,
@@ -181,7 +181,6 @@ class CameraHandler(context: Context) {
                     )
                 }
 
-                // Botón para cambiar las cámaras
                 IconButton(
                     onClick = {
                         getController().cameraSelector =
@@ -201,7 +200,7 @@ class CameraHandler(context: Context) {
                 qrCode?.let {
                     if (!isConnected) {
                         connectToServer(it, scope) {
-                            Toast.makeText(context, "CONECTANDO :)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
                             val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
                             navController.navigate("send-fileScreen/$encodedString") {
                                 popUpTo("cameraScreen") { inclusive = true }
@@ -256,12 +255,12 @@ class CameraHandler(context: Context) {
     }
 
     private fun connectToServer(qrCodeValue: String, scope: CoroutineScope, onSuccess: () -> Unit) {
-        val ipPortRegex = "ftp://(.*):(\\d+)#(\\S+)#(\\S+)".toRegex()
+        val ipPortRegex = "ftp://(\\S+):(\\S+)@(.*):(\\d+)".toRegex()
         val matchResult = ipPortRegex.find(qrCodeValue)
 
         if (matchResult != null) {
-            val ip = matchResult.groupValues[1]
-            val port = matchResult.groupValues[2].toInt()
+            val ip = matchResult.groupValues[3]
+            val port = matchResult.groupValues[4].toInt()
 
             scope.launch {
                 try {

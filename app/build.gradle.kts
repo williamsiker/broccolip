@@ -18,10 +18,8 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-O3"
-            }
+        ndk {
+            abiFilters.addAll(arrayOf("armeabi-v7a", "arm64-v8a"))
         }
     }
 
@@ -59,6 +57,8 @@ android {
             version = "3.22.1"
         }
     }
+    ndkVersion = "26.1.10909125"
+    buildToolsVersion = "34.0.0"
 }
 
 dependencies {
@@ -87,17 +87,17 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.video)
-
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
 
     //Navigation fragments
     implementation(libs.androidx.navigation.compose)
 
-    //QR code view
+    //QR code view ML toolkits
     implementation(libs.barcode.scanning)
     implementation(libs.androidx.camera.mlkit.vision)
+    implementation(libs.text.recognition)
 
-    //FTP connection
+    //Sockets de apache
     implementation(libs.commons.net)
 }

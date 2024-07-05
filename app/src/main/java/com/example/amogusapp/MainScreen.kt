@@ -93,7 +93,7 @@ fun MainScreenPreview() {
 @Composable
 fun MainScreen(navController: NavController, mainActivity: MainActivity) {
     var isContextMenuVisible by remember { mutableStateOf(false) }
-    var conections = remember { mutableStateListOf<Connections>() }
+    val conections = remember { mutableStateListOf<Connections>() }
 
     Column(
         modifier = Modifier
