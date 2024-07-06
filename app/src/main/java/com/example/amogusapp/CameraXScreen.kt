@@ -202,7 +202,7 @@ class CameraHandler(context: Context) {
                         connectToServer(it, scope) {
                             Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
                             val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
-                            navController.navigate("send-fileScreen/$encodedString") {
+                            navController.navigate("send-connection/$encodedString") {
                                 popUpTo("cameraScreen") { inclusive = true }
                                 launchSingleTop = true
                                 restoreState = true

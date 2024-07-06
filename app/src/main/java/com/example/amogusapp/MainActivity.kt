@@ -80,15 +80,26 @@ class MainActivity : ComponentActivity() {
         //Main screen for practicity
         NavHost(navController = navController, startDestination = "mainScreen") {
             composable("splashScreen") { SplashScreen(navController) }
-            composable("mainScreen") { MainScreen(navController, this@MainActivity) }
+            composable("mainScreen") { MainUI().MainScreen(navController, "a") }
             composable("cameraScreen") {
                 val cameraHandler = remember { CameraHandler(context) }
                 if (permissionsGranted) {
                     cameraHandler.CameraScreen(navController)
                 } else {
-                    MainScreen(navController, this@MainActivity)
+                    MainUI().MainScreen(navController, "a")
                 }
             }
+
+            composable(
+                "send-connection/{cadena}",
+                arguments = listOf(navArgument("cadena") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val stringValue = backStackEntry.arguments?.getString("cadena")
+                stringValue?.let {
+                    MainUI().MainScreen(navController,  it)
+                }
+            }
+
             composable(
                 "send-fileScreen/{cadena}",
                 arguments = listOf(navArgument("cadena") { type = NavType.StringType })
@@ -98,6 +109,7 @@ class MainActivity : ComponentActivity() {
                     SendFilesActivity().SendFilesScreen(navController, it)
                 }
             }
+            /* Inutil
             composable("conection/{cadena}",
                 arguments = listOf(navArgument("cadena") {type = NavType.StringType})
             ) {backStackEntry ->
@@ -105,7 +117,7 @@ class MainActivity : ComponentActivity() {
                 stringValue?.let {
                     addConnection(it)
                 }
-            }
+            }*/
 
         }
     }
