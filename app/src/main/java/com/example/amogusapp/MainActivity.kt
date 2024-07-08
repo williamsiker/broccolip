@@ -18,12 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.example.amogusapp.ui.theme.AmogusAppTheme
+import kotlinx.serialization.Serializable
 
 class MainActivity : ComponentActivity() {
     private var permissionsGranted by mutableStateOf(false)
@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun hasRequiredPermissions(): Boolean {
+    private fun hasRequiredPermissions(): Boolean {
         return CAMERAX_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(
                 applicationContext,
@@ -77,48 +77,45 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         val context = LocalContext.current
 
-        //Main screen for practicity
-        NavHost(navController = navController, startDestination = "mainScreen") {
-            composable("splashScreen") { SplashScreen(navController) }
-            composable("mainScreen") { MainUI().MainScreen(navController, "a") }
-            composable("cameraScreen") {
+        //New NavHost Controller Thank you android devs :)))
+        NavHost(navController = navController, startDestination = MainScreen) {
+            composable<SplashScreen> { SplashScreen(navController) }
+            composable<MainScreen> {
+                Broccolink(navController, null)
+            }
+            composable<Camera> {
                 val cameraHandler = remember { CameraHandler(context) }
                 if (permissionsGranted) {
                     cameraHandler.CameraScreen(navController)
                 } else {
-                    MainUI().MainScreen(navController, "a")
+                    Broccolink(navController, null)
                 }
             }
-
-            composable(
-                "send-connection/{cadena}",
-                arguments = listOf(navArgument("cadena") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val stringValue = backStackEntry.arguments?.getString("cadena")
-                stringValue?.let {
-                    MainUI().MainScreen(navController,  it)
-                }
+            composable<BlinkScreen> {
+                val args = it.toRoute<BlinkScreen>()
+                Broccolink(navController, args.credentials)
             }
-
-            composable(
-                "send-fileScreen/{cadena}",
-                arguments = listOf(navArgument("cadena") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val stringValue = backStackEntry.arguments?.getString("cadena")
-                stringValue?.let {
-                    SendFilesActivity().SendFilesScreen(navController, it)
-                }
-            }
-            /* Inutil
-            composable("conection/{cadena}",
-                arguments = listOf(navArgument("cadena") {type = NavType.StringType})
-            ) {backStackEntry ->
-                val stringValue = backStackEntry.arguments?.getString("cadena")
-                stringValue?.let {
-                    addConnection(it)
-                }
-            }*/
-
         }
     }
 }
+
+@Serializable
+object SplashScreen
+
+@Serializable
+object MainScreen
+
+@Serializable
+object Camera
+
+//Second version with composable as arguments
+@Serializable
+data class BlinkScreen(
+    val credentials: String?
+)
+
+//First Version Navigation
+@Serializable
+data class BlinkScreen2(val credentials : String?)
+
+

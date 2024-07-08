@@ -52,8 +52,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 class CameraHandler(context: Context) {
     init {
@@ -197,18 +195,21 @@ class CameraHandler(context: Context) {
                 }
 
                 // QR functionality
-                qrCode?.let {
-                    if (!isConnected) {
-                        connectToServer(it, scope) {
-                            Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
-                            val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
-                            navController.navigate("send-connection/$encodedString") {
-                                popUpTo("cameraScreen") { inclusive = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                qrCode?.let { code ->
+                    LaunchedEffect(code) {
+                        Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
+                        navController.navigate(BlinkScreen(credentials = code))
                     }
+//                    if (!isConnected) {
+//                        connectToServer(it, scope) {
+//                            val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
+//                            navController.navigate("enableConnection/$encodedString") {
+//                                popUpTo("cameraScreen") { inclusive = true }
+//                                launchSingleTop = true
+//                                restoreState = true
+//                            }
+//                        }
+//                    }
                 }
 
                 Row(

@@ -36,8 +36,8 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(key1 = true) {
         alpha.animateTo(1f, animationSpec = tween(1500))
         delay(2000)
-        navController.navigate("mainScreen") {
-            popUpTo("splashScreen") { inclusive = true } // Limpiar la pila de navegación
+        navController.navigate(BlinkScreen("VengodeSplash")) {
+            popUpTo<SplashScreen> {inclusive=true}
         }
     }
     Splash(alpha)
