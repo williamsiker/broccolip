@@ -127,7 +127,7 @@ extern "C" {
 
     // Función para conectar a un servidor usando sockets
     JNIEXPORT jboolean JNICALL
-    Java_com_example_amogusapp_CameraHandler_nativeConnectToServer(JNIEnv *env, jobject thiz,
+    Java_com_example_amogusapp_camerax_CameraViewModel_nativeConnectToServer(JNIEnv *env, jobject thiz,
                                                                    jstring ip, jint port) {
         const char *ipStr = env->GetStringUTFChars(ip, nullptr);
         int serverSocket = socket(AF_INET, SOCK_STREAM, 0);

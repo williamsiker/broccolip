@@ -1,6 +1,5 @@
-package com.example.amogusapp
+package com.example.amogusapp.camerax
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
@@ -41,70 +40,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.amogusapp.BlinkScreen
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class CameraHandler(context: Context) {
-    init {
-        System.loadLibrary("camerax_api")
-        System.loadLibrary("connections_api")
+//UI FOR CAMERAX SCANNING
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CameraScreen(navController: NavController, viewModel: CameraViewModel) {
+    val context = LocalContext.current
+    val controller = remember {
+        LifecycleCameraController(context).apply {
+            setEnabledUseCases(
+                CameraController.IMAGE_CAPTURE or
+                        CameraController.VIDEO_CAPTURE or
+                        CameraController.IMAGE_ANALYSIS
+            )
+        }
     }
-    private external fun nativeRotateAndScale(bitmap: Bitmap, rotationDegrees : Float) : Bitmap
-    private external fun nativeConnectToServer(ip: String, port: Int) : Boolean
-
-    private val controller = LifecycleCameraController(context).apply {
-        setEnabledUseCases(
-            CameraController.IMAGE_CAPTURE or
-                    CameraController.VIDEO_CAPTURE or
-                    CameraController.IMAGE_ANALYSIS
-        )
-    }
-
-    private var isConnected: Boolean = false
-
-    private fun getController(): LifecycleCameraController {
-        return controller
-    }
-
-    private fun takePhoto(
-        context: Context,
-        onPhotoTaken: (Bitmap) -> Unit
-    ) {
+    fun takePhoto(onPhotoTaken: (Bitmap) -> Unit) {
         controller.takePicture(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageCapturedCallback() {
-                /*KOTLIN FUNCTION*/
-                /*override fun onCaptureSuccess(image: ImageProxy) {
-                    super.onCaptureSuccess(image)
-                    val matrix = Matrix().apply {
-                        postRotate(image.imageInfo.rotationDegrees.toFloat())
-                        postScale(-1f, 1f)
-                    }
-                    val rotatedBitmap = Bitmap.createBitmap(
-                        image.toBitmap(),
-                        0,
-                        0,
-                        image.width,
-                        image.height,
-                        matrix,
-                        true
-                    )
-
-                    onPhotoTaken(rotatedBitmap)
-                }*/
                 override fun onCaptureSuccess(image: ImageProxy) {
                     super.onCaptureSuccess(image)
                     val bitmap = image.toBitmap()
-                    val rotatedBitmap = nativeRotateAndScale(bitmap, image.imageInfo.rotationDegrees.toFloat())
+                    val rotatedBitmap = viewModel.nativeRotateAndScale(bitmap, image.imageInfo.rotationDegrees.toFloat())
                     onPhotoTaken(rotatedBitmap)
                 }
 
@@ -116,8 +83,7 @@ class CameraHandler(context: Context) {
         )
     }
 
-    @androidx.annotation.OptIn(ExperimentalGetImage::class)
-    private fun scanQRCode(imageProxy: ImageProxy, onQrCodeDetected: (String) -> Unit) {
+    fun scanQRCode(imageProxy: ImageProxy, onQrCodeDetected: (String) -> Unit) {
         val image = InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
         val options = BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -138,162 +104,102 @@ class CameraHandler(context: Context) {
                 imageProxy.close()
             }
     }
+    val scope = rememberCoroutineScope()
+    val scaffoldState = rememberBottomSheetScaffoldState()
+    val bitmaps by viewModel.bitmaps.collectAsState()
+    var qrCode by remember { mutableStateOf<String?>(null) }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun CameraScreen(navController: NavController) {
-        val context = LocalContext.current
-        val scope = rememberCoroutineScope()
-        val scaffoldState = rememberBottomSheetScaffoldState()
-        val viewModel = viewModel<CameraViewModel>()
-        val bitmaps by viewModel.bitmaps.collectAsState()
-        var qrCode by remember { mutableStateOf<String?>(null) }
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = 0.dp,
+        sheetContent = {
+            PhotoBottomSheetContent(
+                bitmaps = bitmaps,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            CameraPreview(
+                controller = controller,
+                modifier = Modifier.fillMaxSize()
+            )
 
-        BottomSheetScaffold(
-            scaffoldState = scaffoldState,
-            sheetPeekHeight = 0.dp,
-            sheetContent = {
-                PhotoBottomSheetContent(
-                    bitmaps = bitmaps,
-                    modifier = Modifier.fillMaxWidth()
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.offset(16.dp, 16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
                 )
             }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+
+            IconButton(
+                onClick = {
+                    controller.cameraSelector =
+                        if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+                            CameraSelector.DEFAULT_FRONT_CAMERA
+                        } else CameraSelector.DEFAULT_BACK_CAMERA
+                },
+                modifier = Modifier.offset(16.dp, 72.dp)
             ) {
-                CameraPreview(
-                    controller = getController(),
-                    modifier = Modifier.fillMaxSize()
+                Icon(
+                    imageVector = Icons.Default.Cameraswitch,
+                    contentDescription = "Switch camera"
                 )
-                // Botón para retroceder
+            }
+
+            qrCode?.let { code ->
+                LaunchedEffect(code) {
+                    Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
+                    navController.navigate(BlinkScreen(credentials = code))
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
                 IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.offset(16.dp, 16.dp)
+                    onClick = {
+                        scope.launch {
+                            scaffoldState.bottomSheetState.expand()
+                        }
+                    }
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back"
+                        imageVector = Icons.Default.Photo,
+                        contentDescription = "Open gallery"
                     )
                 }
 
                 IconButton(
                     onClick = {
-                        getController().cameraSelector =
-                            if (getController().cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-                                CameraSelector.DEFAULT_FRONT_CAMERA
-                            } else CameraSelector.DEFAULT_BACK_CAMERA
-                    },
-                    modifier = Modifier.offset(16.dp, 72.dp)
+                        takePhoto(onPhotoTaken = viewModel::onTakePhoto)
+                    }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "Switch camera"
+                        imageVector = Icons.Default.PhotoCamera,
+                        contentDescription = "Take photo"
                     )
                 }
+            }
 
-                // QR functionality
-                qrCode?.let { code ->
-                    LaunchedEffect(code) {
-                        Toast.makeText(context, "CONNECTED :)", Toast.LENGTH_SHORT).show()
-                        navController.navigate(BlinkScreen(credentials = code))
-                    }
-//                    if (!isConnected) {
-//                        connectToServer(it, scope) {
-//                            val encodedString = URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
-//                            navController.navigate("enableConnection/$encodedString") {
-//                                popUpTo("cameraScreen") { inclusive = true }
-//                                launchSingleTop = true
-//                                restoreState = true
-//                            }
-//                        }
-//                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                scaffoldState.bottomSheetState.expand()
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Photo,
-                            contentDescription = "Open gallery"
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            takePhoto(context, onPhotoTaken = viewModel::onTakePhoto)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = "Take photo"
-                        )
-                    }
-                }
-
-                LaunchedEffect(Unit) {
-                    getController().setImageAnalysisAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
-                        scanQRCode(imageProxy) { qrCodeValue ->
-                            qrCode = qrCodeValue
-                        }
+            LaunchedEffect(Unit) {
+                controller.setImageAnalysisAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
+                    scanQRCode(imageProxy) { qrCodeValue ->
+                        qrCode = qrCodeValue
                     }
                 }
             }
         }
     }
-
-    private fun connectToServer(qrCodeValue: String, scope: CoroutineScope, onSuccess: () -> Unit) {
-        val ipPortRegex = "ftp://(\\S+):(\\S+)@(.*):(\\d+)".toRegex()
-        val matchResult = ipPortRegex.find(qrCodeValue)
-
-        if (matchResult != null) {
-            val ip = matchResult.groupValues[3]
-            val port = matchResult.groupValues[4].toInt()
-
-            scope.launch {
-                try {
-                    if (!isConnected) {
-                        /*withContext(Dispatchers.IO) {
-                            socket = Socket(ip, port).apply {
-                                reader = BufferedReader(InputStreamReader(getInputStream()))
-                                writer = BufferedWriter(OutputStreamWriter(getOutputStream()))
-                            }
-                        }
-                        isConnected = true
-                        Log.d("Socket", "Connected to $ip:$port")
-                        onSuccess() */
-                        val connected = withContext(Dispatchers.IO) {
-                            nativeConnectToServer(ip, port)
-                        }
-
-                        if(connected) {
-                            isConnected = true
-                            Log.d("Socket", "Connected to $ip:$port")
-                            onSuccess()
-                        }else{
-                            Log.e("Socket", "Error connecting to $ip:$port")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("Socket", "Error connecting", e)
-                }
-            }
-        } else {
-            Log.e("Socket", "Invalid QR code value format: $qrCodeValue")
-        }
-    }
-
 }

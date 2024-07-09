@@ -1,8 +1,8 @@
 package com.example.amogusapp
 
-import android.content.Context
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.AlignHorizontalLeft
 import androidx.compose.material.icons.filled.Add
@@ -45,6 +44,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
@@ -71,21 +71,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Dao
-import androidx.room.Database
-import androidx.room.Entity
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.PrimaryKey
-import androidx.room.Query
-import androidx.room.Room
-import androidx.room.RoomDatabase
+import com.example.amogusapp.realmdb.Prompts
+import com.example.amogusapp.realmdb.RealmViewModel
 import kotlinx.coroutines.launch
-
 
 data class Connections (
     val osImgvector : ImageVector,
@@ -127,6 +121,7 @@ class MainUI : ComponentActivity() {
     private var ftpPort = 0
     private var ftpUser = ""
     private var ftpPasswd = ""
+    val viewModel: RealmViewModel by viewModels()
 }
 
 @Composable
@@ -138,49 +133,8 @@ fun Prueba(string : String){
 @Composable
 fun PromptScreenPreview() {
     val navController = rememberNavController()
-    //Broccolink(navController, null)
     Broccolink(navController, null)
 }
-
-@Entity(tableName = "Chat")
-data class ChatEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val titulo: String,
-    val contenido: String
-)
-
-@Dao
-interface ChatDao {
-    @Query("SELECT * FROM Chat")
-    fun getAllChats(): List<ChatEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertChat(chat: ChatEntity)
-}
-
-@Database(entities = [ChatEntity::class], version = 1)
-abstract class ChatDatabase : RoomDatabase() {
-    abstract fun chatDao(): ChatDao
-
-    companion object {
-        @Volatile
-        private var INSTANCE: ChatDatabase? = null
-
-        fun getDatabase(context: Context): ChatDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    ChatDatabase::class.java,
-                    "chat_database" // Nombre de tu base de datos
-                ).build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
-}
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,6 +146,7 @@ fun Broccolink(navController: NavController, credentials: String?) {
     var expanded by remember { mutableStateOf(false) }
     var currentText by remember { mutableStateOf("") }
 
+//    val prompts by MainUI().viewModel.prompts.collectAsState()
     val context = LocalContext.current
     var isConnected by remember { mutableStateOf(false) }
 
@@ -207,9 +162,7 @@ fun Broccolink(navController: NavController, credentials: String?) {
             unselectedIcon = Icons.Outlined.Settings
         )
     )
-
-    //val chatDatabase = ChatDatabase.getDatabase(context)
-    //val chatDao = chatDatabase.chatDao()
+	
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
@@ -311,7 +264,7 @@ fun Broccolink(navController: NavController, credentials: String?) {
                             FloatingActionButton(
                                 onClick = { expanded = !expanded },
                                 shape = CircleShape,
-                                backgroundColor = Color.Black,
+                                containerColor = Color.Black,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -356,10 +309,37 @@ fun Broccolink(navController: NavController, credentials: String?) {
                         Text("Click Me")
                     }
                 }
+//                LazyColumn(
+//                    modifier = Modifier.fillMaxSize(),
+//                    verticalArrangement = Arrangement.spacedBy(16.dp)
+//                ) {
+//                    items(prompts) { prompt ->
+//                        ChatItem(
+//                            prompt = prompt,
+//                            Modifier
+//                                .fillMaxWidth()
+//                                .padding(16.dp)
+//                                .clickable { }
+//                        )
+//                    }
+//                }
             }
         }
     }
 
+}
+
+@Composable
+fun ChatItem(prompt : Prompts, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = "Chats ->>> ${prompt.chatList.joinToString { it.fullContent }}",
+            fontSize = 14.sp,
+            fontStyle = FontStyle.Normal
+        )
+    }
 }
 
 @Composable
@@ -558,7 +538,7 @@ fun Footer() {
                         FloatingActionButton(
                             onClick = { expanded = true },
                             shape = CircleShape,
-                            backgroundColor = Color.Black,
+                            containerColor = Color.Black,
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(

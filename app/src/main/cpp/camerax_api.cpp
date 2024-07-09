@@ -10,7 +10,7 @@
 
 extern "C" {
     JNIEXPORT jobject JNICALL
-    Java_com_example_amogusapp_CameraHandler_nativeRotateAndScale(
+    Java_com_example_amogusapp_camerax_CameraViewModel_nativeRotateAndScale(
             JNIEnv *env,
             jobject instance,
             jobject bitmap,

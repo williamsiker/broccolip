@@ -1,4 +1,4 @@
-package com.example.amogusapp
+package com.example.amogusapp.camerax
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image

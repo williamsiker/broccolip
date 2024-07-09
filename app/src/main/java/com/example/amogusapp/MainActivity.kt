@@ -18,10 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.example.amogusapp.camerax.CameraScreen
+import com.example.amogusapp.camerax.CameraViewModel
 import com.example.amogusapp.ui.theme.AmogusAppTheme
 import kotlinx.serialization.Serializable
 
@@ -84,9 +87,9 @@ class MainActivity : ComponentActivity() {
                 Broccolink(navController, null)
             }
             composable<Camera> {
-                val cameraHandler = remember { CameraHandler(context) }
+                val viewModel: CameraViewModel = viewModel()
                 if (permissionsGranted) {
-                    cameraHandler.CameraScreen(navController)
+                    CameraScreen(navController,viewModel)
                 } else {
                     Broccolink(navController, null)
                 }
@@ -113,9 +116,3 @@ object Camera
 data class BlinkScreen(
     val credentials: String?
 )
-
-//First Version Navigation
-@Serializable
-data class BlinkScreen2(val credentials : String?)
-
-

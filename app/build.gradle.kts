@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlin.serialization)
+
+    id("io.realm.kotlin")
 }
 
 android {
@@ -11,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.example.amogusapp"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -35,12 +37,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "1.8" }
     buildFeatures {
         compose = true
     }
@@ -74,9 +74,6 @@ dependencies {
 
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.sqlite.framework)
-    implementation(libs.androidx.room.common)
-    implementation(libs.androidx.room.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -94,7 +91,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
 
-    //Navigation fragments
+    //Navigation
     implementation(libs.androidx.navigation.compose)
 
     //QR code view ML toolkits
@@ -111,4 +108,6 @@ dependencies {
 
     //??
     implementation(libs.androidx.material)
+
+    implementation(libs.library.base)
 }
