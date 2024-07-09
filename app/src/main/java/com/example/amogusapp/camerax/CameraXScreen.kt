@@ -145,7 +145,7 @@ class CameraHandler(context: Context) {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         val scaffoldState = rememberBottomSheetScaffoldState()
-        val viewModel = viewModel<MainViewModel>()
+        val viewModel = viewModel<CameraViewModel>()
         val bitmaps by viewModel.bitmaps.collectAsState()
         var qrCode by remember { mutableStateOf<String?>(null) }
 
