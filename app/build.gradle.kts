@@ -2,16 +2,17 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
 
-    id("io.realm.kotlin")
+    id("com.google.devtools.ksp")
 }
 
 android {
-    namespace = "com.example.amogusapp"
+    namespace = "com.example.testapp"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.amogusapp"
+        applicationId = "com.example.testapp"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -40,12 +41,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions { jvmTarget = "1.8" }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
@@ -74,6 +74,13 @@ dependencies {
 
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.adapters)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.material)
+    implementation(libs.androidx.fragment.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -99,15 +106,22 @@ dependencies {
     implementation(libs.androidx.camera.mlkit.vision)
     implementation(libs.text.recognition)
 
-    //Sockets de apache
+    //Sockets de apache para conexiones a servidores ?maibe
     implementation(libs.commons.net)
 
     //New Navigation Pro json amogus
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
-    //??
+    //material normal but shoudl be material3 i guess
     implementation(libs.androidx.material)
 
-    implementation(libs.library.base)
+    //room databse
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    //Biometric Auth
+    implementation(libs.androidx.biometric)
 }
+

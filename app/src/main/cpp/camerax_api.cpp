@@ -1,16 +1,12 @@
 #include <jni.h>
 #include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <android/bitmap.h>
 #include <cmath>
-#include <curl/curl.h>
 
 extern "C" {
     JNIEXPORT jobject JNICALL
-    Java_com_example_amogusapp_camerax_CameraViewModel_nativeRotateAndScale(
+    Java_com_example_testapp_camerax_CameraViewModel_nativeRotateAndScale(
             JNIEnv *env,
             jobject instance,
             jobject bitmap,
@@ -20,14 +16,16 @@ extern "C" {
         void *pixels;
 
         if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
-            return NULL;
+            AndroidBitmap_unlockPixels(env,bitmap);
+            return nullptr;
         }
 
         if (AndroidBitmap_lockPixels(env, bitmap, &pixels) < 0) {
-            return NULL;
+            AndroidBitmap_unlockPixels(env,bitmap);
+            return nullptr;
         }
 
-        int newWidth, newHeight;
+        uint32_t newWidth, newHeight;
         if (rotationDegrees == 90 || rotationDegrees == 270) {
             newWidth = info.height;
             newHeight = info.width;
@@ -46,21 +44,22 @@ extern "C" {
         jobject bitmapConfig = env->CallStaticObjectMethod(configClass, valueOfConfigMethod,
                                                            configName);
 
-        jobject newBitmap = env->CallStaticObjectMethod(bitmapClass, createBitmapMethod, newWidth,
-                                                        newHeight, bitmapConfig);
+        jobject newBitmap = env->CallStaticObjectMethod(bitmapClass, createBitmapMethod, (int)newWidth,
+                                                        (int)newHeight, bitmapConfig);
 
         void *newPixels;
         if (AndroidBitmap_lockPixels(env, newBitmap, &newPixels) < 0) {
             AndroidBitmap_unlockPixels(env, bitmap);
-            return NULL;
+            AndroidBitmap_unlockPixels(env, newBitmap);
+            return nullptr;
         }
 
-        uint32_t *src = (uint32_t *) pixels;
-        uint32_t *dst = (uint32_t *) newPixels;
+        auto *src = (uint32_t *) pixels;
+        auto *dst = (uint32_t *) newPixels;
 
         for (int y = 0; y < info.height; ++y) {
             for (int x = 0; x < info.width; ++x) {
-                int newX, newY;
+                uint32_t newX, newY;
                 switch ((int) rotationDegrees) {
                     case 90:
                         newX = info.height - 1 - y;
@@ -85,7 +84,6 @@ extern "C" {
 
         AndroidBitmap_unlockPixels(env, bitmap);
         AndroidBitmap_unlockPixels(env, newBitmap);
-
         return newBitmap;
     }
 }

@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 # Declares the project name.
-project("amogusapp")
+project("testapp")
 
 # Define the paths to the libraries
 set(OPENSSL32_ROOT_DIR "D:\\Libraries\\openssl_build32")
@@ -40,10 +40,10 @@ add_library(connections_api SHARED connections_api.cpp)
 find_library(log-lib log)
 find_library(jnigraphics-lib jnigraphics)
 
-set(CURL_LIBRARY ${CURL_ROOT}/lib/libcurl.so )
+set(CURL_LIBRARY ${CURL_ROOT}\\lib\\libcurl.so )
 set(OPENSSL_LIBRARIES
-        ${OPENSSL_ROOT_DIR}/lib/libssl.so
-        ${OPENSSL_ROOT_DIR}/lib/libcrypto.so
+        ${OPENSSL_ROOT_DIR}\\lib\\libssl.so
+        ${OPENSSL_ROOT_DIR}\\lib\\libcrypto.so
 )
 set(ZLIB_LIBRARY ${ZLIB_ROOT}/lib/libz.so)
 

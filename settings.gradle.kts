@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AmogusApp"
+rootProject.name = "testapp"
 include(":app")
  
